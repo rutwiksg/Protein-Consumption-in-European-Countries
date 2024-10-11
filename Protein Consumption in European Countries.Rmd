@@ -1,0 +1,358 @@
+---
+title: "Protein Consumption in European Countries"
+author: "Rutwik Guntoorkar"
+date: "2023-04-03"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+### Introduction:
+The accompanied dataset gives estimates of the average protein consumption (in grams per
+person per day) from different food sources for the inhabitants of 25 European countries.
+We have to answer the questions below:
+
+A. Use principal components analysis to investigate the relationships between the
+countries on the basis of these variables
+
+B. Carry out cluster analysis to study relation between countries on their diet
+
+C. Identify the important factors underlying the observed variables and examine the
+relationships between the countries with respect to these factors
+
+## Loading the Dataset
+
+```{r}
+library(readr)
+library(MVA)
+library(HSAUR2)
+library(SciViews)
+library(scatterplot3d)
+library(car)
+library(lattice)
+library(GGally)
+library(ggplot2)
+library(ggridges)
+library(ggvis)
+library(ggthemes)
+library(cowplot)
+library(gapminder)
+library(gganimate)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(RColorBrewer)
+library(Hotelling)
+library(stats)
+library(biotools)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(cluster)
+library(magrittr)
+library(NbClust)
+library(MASS)
+library(gvlma)
+library(leaps)
+library(relaimpo)
+
+ptn <- read.csv("~/Desktop/Projects/Protein Consumption in European Countries/Protein_Consumption.csv", row.names=1)
+
+attach(ptn)
+```
+
+## 1. About the Dataset
+
+### About
+
+* The dataset contains estimates of average protein consumption (in grams per person per day) from various food sources for the inhabitants of 25 European countries. Each row represents a country, while the columns correspond to different food sources contributing to protein intake. The variables may include, but are not limited to, meat, dairy, legumes, grains, and seafood.
+
+* The dataset aims to capture the dietary habits of European populations and explore the relationships between countries based on their protein consumption patterns. This information is crucial for understanding dietary trends, identifying potential health implications, and exploring cultural and economic factors influencing food choices across different nations.
+
+### Data Source
+
+* Link: https://github.com/rutwiksg/Protein-Consumption-in-European-Countries/blob/main/Protein_Consumption.csv
+
+### Data Dictionary
+
+* Country: The name of the European country.
+* Rest of the columns: Average grams of protein consumed per person per day from the respective item mentioned in the column.
+
+### Analysing the Data
+
+```{r}
+str(ptn)
+prtn <- ptn[,-10]
+stars(prtn)
+```
+
+* The Total column has been excluded from the analysis.
+* This is because it is just the sum of all the rows and causes disruption in the results.
+* The stars function helps us identify immediate commonalities between countries.
+* East Germany, Ireland, the UK, West Germany, and the Netherlands all countries have similar star diagrams indicating similar characteristics between these countries.
+
+## 2.	The Multivariate Analysis aims to do the following.
+
+#### Exploring the interrelationships between European countries based on their dietary variables. (Through Principal Component Analysis (PCA))
+#### Investigate the dietary similarities and differences among countries. (Through Cluster Analysis)
+#### Identify the key factors underlying the observed dietary variables and examine the relationships between countries concerning these factors.
+
+
+## 3. Principal Component Analysis (PCA)
+
+* Principal Component Analysis (PCA) is a statistical technique for dimensionality reduction and data visualization. It aims to transform a set of possibly correlated variables into a new set of uncorrelated variables called principal components. These principal components are linear combinations of the original variables and are ordered by the amount of variance they explain in the data.
+
+* PCA finds the directions, or principal components, along which the data varies the most. The first principal component explains the most significant amount of variance in the data, with each subsequent component explaining as much of the remaining variance as possible, subject to the constraint that it is orthogonal (uncorrelated) to the previous components.
+
+###### Principal Component Analysis (PCA) is like a magic trick that helps you simplify this big table into something easier to understand. It does this by finding patterns in the data.
+
+### PCA values
+
+```{r}
+protein <- cor(prtn)
+
+protein_pca <- prcomp(protein,scale=TRUE)
+
+summary(protein_pca)
+```
+
+* Further, we can check the schematic diagram to identify how many principal components to consider for our analysis.
+
+### Scree Plots
+
+```{r}
+(eigen_protein <- protein_pca$sdev^2)
+names(eigen_protein) <- paste("PC",1:9,sep="")
+
+plot(eigen_protein, xlab = "Component number", ylab = "Component variance", type = "l", main = "Scree diagram")
+
+fviz_eig(protein_pca, addlabels = TRUE)
+```
+
+* The scree plot determines how many Principal Components (PCs) to use for the analysis.
+* The significant bend in the plot is used to determine the number of PCs to be used.
+* The plot shows us the number of components to be considered is 2. (86.8% of variance) 
+
+
+### Biplot
+
+```{r}
+fviz_pca_var(protein_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+```
+
+*	The distance between points in a biplot reflects the generalised distance between them.
+* The length of the vector reflects the variance of the variable.
+* Correlation of the variables reflected by the angle between them. The smaller the angle, the more significant the correlation.
+* For example, it shows that meat and milk are all correlated strongly.
+
+### Individual PCA
+
+```{r}
+res.pca <- PCA(prtn, graph = FALSE)
+
+fviz_pca_ind(res.pca)
+```
+
+* The countries have been plotted based on their PCA values in the individual PCA plot.
+* The countries are allocated based on their similarities.
+* All the South European countries are at the top left of the plot.
+
+### PCA - Biplot
+
+```{r}
+fviz_pca_biplot(res.pca, repel = TRUE,
+                col.var = "#FC4E07", # Variables color
+                )
+```
+
+* The combination of the variables and individual PCAs gives us the PCA biplot.
+* We can see that Albania, Romania, Yugoslavia, and Bulgaria (Balkan countries) tend to have cereals as their primary protein intake.
+* Southern European countries (Portugal, Spain, Italy, and Greece) have Fruits, Vegetables, pulses, and oil seeds as their primary source of protein intake.
+* Eastern European countries (USSR, Poland, Hungary, East Germany, Czechoslovakia) have a combination of milk, meat, fruits, vegetables, cereal, and oil seeds, all contributing equally towards their protein intake.
+* All the rest of the Western and Northern European countries have milk and meat as their primary source of protein in their diet.
+
+###### Thus, the PCA helped us club countries and tell us their similarities. In our further analysis, we can see if this still stands and find the underlying reason behind this observation.
+
+## Cluster Analysis
+
+* Cluster analysis categorizes data points into groups based on similarities, revealing patterns and structures within datasets. It aids in exploring relationships, uncovering trends, and facilitating segmentation for targeted strategies in various domains such as business, healthcare, and social sciences. By identifying distinct clusters, analysts can make informed decisions and tailor interventions for more effective outcomes, making cluster analysis an essential tool for data-driven insights and decision-making.
+
+###### Clustering organizes data points into groups, or "clusters," based on their similarities. It helps us see patterns and similarities within the data, making it easier to understand and analyze.
+
+* We first must define the ideal number of clusters to divide the data into. We can check using a couple of tests.
+
+### Optimal Clusters
+
+```{r}
+matstd_protein <- scale(prtn)
+
+fviz_nbclust(matstd_protein, kmeans, method = "gap_stat")
+```
+
+#### Code for the function to run
+
+```{r}
+fviz_nbclust <- function (x, FUNcluster = NULL, method = c("silhouette", "wss", 
+                                                           "gap_stat"), diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), 
+                          barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", 
+                          print.summary = TRUE, ...) 
+{
+  set.seed(123)
+  if (k.max < 2) 
+    stop("k.max must bet > = 2")
+  method = match.arg(method)
+  if (!inherits(x, c("data.frame", "matrix")) & !("Best.nc" %in% 
+                                                  names(x))) 
+    stop("x should be an object of class matrix/data.frame or ", 
+         "an object created by the function NbClust() [NbClust package].")
+  if (inherits(x, "list") & "Best.nc" %in% names(x)) {
+    best_nc <- x$Best.nc
+    if (any(class(best_nc) == "numeric") ) 
+      print(best_nc)
+    else if (any(class(best_nc) == "matrix") )
+      .viz_NbClust(x, print.summary, barfill, barcolor)
+  }
+  else if (is.null(FUNcluster)) 
+    stop("The argument FUNcluster is required. ", "Possible values are kmeans, pam, hcut, clara, ...")
+  else if (!is.function(FUNcluster)) {
+    stop("The argument FUNcluster should be a function. ", 
+         "Check if you're not overriding the specified function name somewhere.")
+  }
+  else if (method %in% c("silhouette", "wss")) {
+    if (is.data.frame(x)) 
+      x <- as.matrix(x)
+    if (is.null(diss)) 
+      diss <- stats::dist(x)
+    v <- rep(0, k.max)
+    if (method == "silhouette") {
+      for (i in 2:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_ave_sil_width(diss, clust$cluster)
+      }
+    }
+    else if (method == "wss") {
+      for (i in 1:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_withinSS(diss, clust$cluster)
+      }
+    }
+    df <- data.frame(clusters = as.factor(1:k.max), y = v, 
+                     stringsAsFactors = TRUE)
+    ylab <- "Total Within Sum of Square"
+    if (method == "silhouette") 
+      ylab <- "Average silhouette width"
+    p <- ggpubr::ggline(df, x = "clusters", y = "y", group = 1, 
+                        color = linecolor, ylab = ylab, xlab = "Number of clusters k", 
+                        main = "Optimal number of clusters")
+    if (method == "silhouette") 
+      p <- p + geom_vline(xintercept = which.max(v), linetype = 2, 
+                          color = linecolor)
+    return(p)
+  }
+  else if (method == "gap_stat") {
+    extra_args <- list(...)
+    gap_stat <- cluster::clusGap(x, FUNcluster, K.max = k.max, 
+                                 B = nboot, verbose = verbose, ...)
+    if (!is.null(extra_args$maxSE)) 
+      maxSE <- extra_args$maxSE
+    else maxSE <- list(method = "firstSEmax", SE.factor = 1)
+    p <- fviz_gap_stat(gap_stat, linecolor = linecolor, 
+                       maxSE = maxSE)
+    return(p)
+  }
+}
+
+.viz_NbClust <- function (x, print.summary = TRUE, barfill = "steelblue", 
+                          barcolor = "steelblue") 
+{
+  best_nc <- x$Best.nc
+  if (any(class(best_nc) == "numeric") )
+    print(best_nc)
+  else if (any(class(best_nc) == "matrix") ) {
+    best_nc <- as.data.frame(t(best_nc), stringsAsFactors = TRUE)
+    best_nc$Number_clusters <- as.factor(best_nc$Number_clusters)
+    if (print.summary) {
+      ss <- summary(best_nc$Number_clusters)
+      cat("Among all indices: \n===================\n")
+      for (i in 1:length(ss)) {
+        cat("*", ss[i], "proposed ", names(ss)[i], 
+            "as the best number of clusters\n")
+      }
+      cat("\nConclusion\n=========================\n")
+      cat("* According to the majority rule, the best number of clusters is ", 
+          names(which.max(ss)), ".\n\n")
+    }
+    df <- data.frame(Number_clusters = names(ss), freq = ss, 
+                     stringsAsFactors = TRUE)
+    p <- ggpubr::ggbarplot(df, x = "Number_clusters", 
+                           y = "freq", fill = barfill, color = barcolor) + 
+      labs(x = "Number of clusters k", y = "Frequency among all indices", 
+           title = paste0("Optimal number of clusters - k = ", 
+                          names(which.max(ss))))
+    return(p)
+  }
+}
+```
+
+```{r}
+res.nbclust <- prtn %>% scale() %>% NbClust(distance = "euclidean", min.nc = 2, max.nc = 10, method = "complete", index ="all") 
+fviz_nbclust(res.nbclust, ggtheme = theme_minimal())
+```
+
+* Both the tests suggest that the optimal number of clusters should be 2.
+
+#### Visuals using 2 clsuters
+
+```{r}
+pam.res <- pam(matstd_protein, 2)
+# Visualize
+fviz_cluster(pam.res)
+```
+
+#### Hierarchial Clustering
+
+```{r}
+res.hc <- matstd_protein %>% scale() %>% dist(method = "euclidean") %>%
+  hclust(method = "ward.D2")
+
+fviz_dend(res.hc, k = 2, # Cut in four groups
+          cex = 0.5, # label size
+          k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+          color_labels_by_k = TRUE, # color labels by groups
+          rect = TRUE # Add rectangle around groups
+          )
+```
+
+* Clustering also aligns with our findings of the PCA.
+* However, as we have 2 clusters, Balkan and Southern European countries are clustered together for dairy and meat protein intake, which is less.
+* On the other hand, Northern, Eastern, and Western European countries are clustered, for they have dairy and meat intake as part of their protein intake.
+
+###### In the final section, we can review additional support material for our findings and conclude.
+
+## 5.	Observations and Conclusion
+
+* For both PCA and Clustering, we found that the given countries have been segregated into four segments – Balkan, Southern, Eastern European, and Northern & Western European.
+
+* A deeper analysis is done to identify the root cause for this classification. The findings are as follows:
+
+##### Balkan Countries: 
+* This group consists of Albania, Romania, Yugoslavia, and Bulgaria. These countries are geographically close and share similarities in their traditional diets. Balkan cuisine often includes a variety of cereals and bread based on wheat. Additionally, cereal growth is also higher in these countries due to its proximity to the Adriatic and Black Seas. Therefore, the protein diet in these countries will likely include a significant amount of cereal.
+
+##### Southern European Countries: 
+* Portugal, Spain, Italy, and Greece fall into this group. Mediterranean cuisine characterises these countries' diets, rich in seafood, olive oil, fruits, vegetables, and grains. Therefore, the protein diet in these countries is likely to include a balance of fruits, vegetables, oil seeds, and pulses.
+
+##### Eastern European Countries: 
+* The USSR, Hungary, Poland, East Germany, and Czechoslovakia are part of this group. These countries historically had diets influenced by Soviet food policies, which emphasized meat, potatoes, grains, and dairy. Meat, especially pork, was a staple in these diets, along with potatoes and bread. Additionally, traditional dishes often include soups and stews with meat and vegetables. Therefore, the protein diet in these countries likely consists of a significant amount of pork, beef, poultry, and dairy products (a mixture of all).
+
+##### Western and Northern European Countries: 
+* This group includes Austria, Belgium, Denmark, inland, France, Ireland, Netherlands, Norway, Sweden, Switzerland, the United Kingdom, and West Germany. These countries have diverse diets, but common elements include a reliance on seafood (especially in coastal regions), dairy products, and a variety of meats such as beef, pork, and poultry. However, compared to the other groups, the emphasis on meat and dairy products is higher.
+
+###### These groupings are based on geographical proximity, historical influences, and culinary traditions, all of which play a role in shaping the protein diets of these countries.
